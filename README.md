@@ -1,4 +1,5 @@
 # Computer Networks Final Project
 
 ### תרשים מימינלי ראשוני
-![Alt text](slide.jpg?raw=true "Title")
+
+![Alt text](illustration.jpg?raw=true "Title")
