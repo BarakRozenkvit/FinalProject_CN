@@ -1,0 +1,138 @@
+  C++ Lesson 1
+C++ vs. C, Java, Python
+ Dr. Erel Segal-Halevi
+Some of the slides were written by: Dr. Ofir Pele and Dr. Miri Ben-Nissan
+
+   Software written in C++:
+Facebook https://github.com/facebook/folly
+Bitcoin: https://github.com/bitcoin/bitcoin
+LibreOffice: https://github.com/LibreOffice/core
+Unreal: https://github.com/EpicGames/UnrealEngine
+   2
+
+ Why C++?
+      C++ =
+C + Java + More...
+C
+C++
+Java, Python
+Low-level machine
+programming (benchmarks)
+Yes
+Yes
+No
+High-level Object-Oriented
+programming
+No
+Yes
+Yes
+Complexity
+Low
+High
+Med.
+        3
+https://yosefk.com/c++fqa/ https://en.cppreference.com/w/
+
+  C++ vs. Java – memory
+● In C++, the memory consumption of a data structure is tight – you get only what you ask for.
+● In Java, your data structures might consume much more memory.
+● See example in folder 1. ● Why is this?
+5
+
+  C++ vs. Python – time
+● In both languages, you can solve complex algorithmic problems, such as the Traveling Salesman Problem.
+● In C++, the code runs 10-100 times faster; see example in folder 1.
+● Besides speed, C++ is also better suited to work in real time.
+6
+
+ History
+Auto return type, generic lambdas, binary literals,...
+C++14
+Minor changes
+The C++ Prog. Manual (85- 90)
+Default in g++
+C++98
+C++03
+Minor changes
+auto, lambdas, threading, ...
+C++11
+Major changes
+     7
+We’ll learn parts of C++-11, 14, 17,
+Mostly parts that makes C++ more “pythonic” while keeping it
+efficient
+
+ Future
+   8
+C++17 C++20
+...
+
+  The missing types
+ 9
+
+ strings in C++
+#include <iostream>
+#include <string>
+int main()
+{
+   std::string str;
+   int a;
+   double b;
+   std::cin >> str >> a >> b;
+   if(std::cin.fail())
+   {
+      std::cerr << "input problem\n";
+      return 1;
+   }
+   std::cout << "I got: "<< str << ' '
+   << a << ' ' << b << std::endl;
+ :More about string functions
+http://www.cppreference.com/cppstring
+ 10}
+
+ Boolean variables
+#include <iostream>
+int main()
+{
+   int a = 5;
+   bool isZero = (a == 0);
+   // same conditions
+   if(!isZero && isZero==false &&
+   isZero!=true &&  !!! isZero && a )
+   {
+      std::cout << "a is not zero\n";
+   }
+}
+ Good style
+  11
+
+ 12
+C++ namespace (folder 3)
+● Groups different variables and functions together;
+● Reduces danger of name-collision when including different libraries;
+● Can span multiple files.
+● Standard library namespace: std;
+● Another example: folly
+https://github.com/facebook/folly/blob/master/fol ly/stop_watch.h
+
+ Error Handling in C++ (folders 5-6)
+    Exception
+Assert
+Used during:
+Normal run
+Development
+Used for:
+Handling exceptional conditions.
+Spotting internal errors and bugs.
+Disabling:
+No
+With compiler flag
+        14
+
+ Unit-testing in C++
+● You learned to do it in Java (JUnit). ● It is at least as important in C++.
+● There are many frameworks for automated unit-testing in C++.
+● We will use doctest – an open-
+source framework:
+https://github.com/onqtam/doctest
+● See folder 8 for an example. 15
