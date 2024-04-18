@@ -25,7 +25,11 @@ class FileHandler:
        :return:
        """
        if not (self.reader.tell() == self.fileSize):
-            return self.reader.read(size)
+            data = self.reader.read(size)
+            if len(data) < size:
+                self.EOF = True
+                print(self.path, " is Finished")
+            return data
        else:
            self.EOF = True
 
@@ -35,3 +39,15 @@ class FileHandler:
         :return:
         """
         return self.reader.tell() + 1
+
+if __name__ == '__main__':
+    d = FileHandler("Files/1.txt")
+    f =d.getData(1000)
+    print(len(f))
+    g =d.getData(1000)
+    print(len(g))
+    s = d.getData(1000)
+    print(len(s))
+    m = d.getData(1000)
+    print(len(m))
+    print(1)
