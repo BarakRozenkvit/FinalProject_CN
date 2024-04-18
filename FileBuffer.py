@@ -14,6 +14,7 @@ class FileBuffer:
         :param path: path to file
         self.buffer: [(data1,seqNum1),(data2,seqNum2),(data3,seqNum3)]
         self.streamID: uniqe ID to assign Stream Object
+        self.packageSize: size of each package of data from file
         self.fileHandler: FileHandler Object
         """
         self.buffer = []
@@ -62,8 +63,8 @@ class FileBuffer:
 
     def toStream(self):
         """
-        1. convert the function to Stream Foramt
-        2. clears the buffer
+        1. pop 0 index from list (Queue)
+        2. convert to Stream
         :return: Stream Object
         """
         data = self.buffer.pop(0)
@@ -97,6 +98,9 @@ class BufferManager:
     ### Implement this functions async
     def manage(self):
         """
+        run this process while the flag self.running is True
+        for each buffer, if its empty or below threshold,
+        lock the buffer to the thread, fill it and release the buffer
         :return: void
         """
         while self.running:
@@ -109,8 +113,12 @@ class BufferManager:
 
     def pack(self,payload_size):
         """
-        while the total data packed is less than payload_size iterate through all the file_buffers,
-        if buffer is available for packing, convert it to Stream object and clear the buffer
+        while the payload size is greater than the minimum of package size of all the packages of all files
+        and self.running is True:
+        1. shuffle the list, for every buffer, lock the buffer to thread
+        2. if fileBuffer is not empty and the package size is smaller than payload size, convert to Stream and
+        add to list
+        3. if all buffers are empty stop this function
         :return: Stream array
         """
         streamsToSend = []
