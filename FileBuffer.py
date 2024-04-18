@@ -5,6 +5,7 @@ from threading import Thread
 from QUIC import Stream
 from FileHandler import FileHandler
 
+
 class FileBuffer:
 
     def __init__(self,path):
@@ -52,7 +53,7 @@ class FileBuffer:
         this function clears the buffer
         :return:
         """
-        self.buffer = ""
+        self.buffer.clear()
 
     def toStream(self):
         """

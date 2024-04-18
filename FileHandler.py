@@ -25,7 +25,7 @@ class FileHandler:
        :return:
        """
        if not (self.reader.tell() == self.fileSize):
-            return self.reader.read(self.packageSize)
+            return self.reader.read(size)
        else:
            self.EOF = True
 
