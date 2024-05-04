@@ -14,6 +14,8 @@ class quicSocket:
         self.socket = socket(AF_INET, SOCK_DGRAM)
         self.connection_id = random.randint(1,100)
         self.dest_connection_id = None
+        self.packetNumber = 0
+        self.bufferSize = 9000
 
     def connect(self,serverAddress):
         """
@@ -22,7 +24,14 @@ class quicSocket:
         :param serverAddress: address of the server
         :return: void
         """
-        pass
+        self.packetNumber += 1
+        packet = quicPacket(self.connection_id,self.packetNumber,[])
+        self.socket.sendto(packet.pack(),serverAddress)
+
+        buffer, serverAddress = self.socket.recvfrom(self.bufferSize)
+        buffer = quicPacket.unpack(buffer)
+        self.dest_connection_id = buffer.dest_connection_id
+        print("Connection successfully established to", serverAddress)
 
     def accept(self,buffer_size):
         """
@@ -31,7 +40,15 @@ class quicSocket:
         :param buffer_size:
         :return:
         """
-        pass
+        buffer, clientAddress = self.socket.recvfrom(self.bufferSize)
+        buffer = quicPacket.unpack(buffer)
+        self.dest_connection_id = buffer.dest_connection_id
+
+        print("got Connection request from", clientAddress)
+        self.packetNumber += 1
+        packet = quicPacket(self.connection_id, self.packetNumber, [])
+        self.socket.sendto(packet.pack(), clientAddress)
+        return clientAddress
 
     def send(self,serverAddress,data):
         """
@@ -41,7 +58,18 @@ class quicSocket:
         :param data
         :return:
         """
-        pass
+        self.packetNumber += 1
+        packet = quicPacket(self.dest_connection_id,self.packetNumber,data)
+        self.socket.sendto(packet.pack(),serverAddress)
+
+        buffer, clientAddress = self.socket.recvfrom(self.bufferSize)
+        buffer = quicPacket.unpack(buffer)
+        if buffer.dest_connection_id != self.connection_id:
+            return
+
+        ## handle ACK
+
+
 
     def receive(self, buffer_size):
         """
@@ -50,7 +78,18 @@ class quicSocket:
         :param buffer_size
         :return:
         """
-        pass
+        buffer, clientAddress = self.socket.recvfrom(self.bufferSize)
+        buffer = quicPacket.unpack(buffer)
+        if buffer.dest_connection_id != self.connection_id:
+            return
+
+        # send ack
+        self.packetNumber += 1
+        packet = quicPacket(self.dest_connection_id, self.packetNumber, [])
+        self.socket.sendto(packet.pack(),clientAddress)
+
+        return buffer.payload
+
 
 class quicPacket:
     """

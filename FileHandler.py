@@ -13,8 +13,9 @@ class FileHandler:
         self.EOF: if we reach EOF
         """
         self.path = path
-        self.reader = open(path,"r")
-        self.fileSize = os.path.getsize(self.path)
+        if(path != ""):
+            self.reader = open(path,"r")
+            self.fileSize = os.path.getsize(self.path)
         self.EOF = False
 
     def getData(self,size):
@@ -29,7 +30,7 @@ class FileHandler:
             data = self.reader.read(size)
             if len(data) < size:
                 self.EOF = True
-                print(self.path, " is Finished")
+                #print(self.path, " is Finished")
             return data
        else:
            self.EOF = True

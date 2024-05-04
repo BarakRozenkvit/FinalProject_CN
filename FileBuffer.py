@@ -70,12 +70,20 @@ class FileBuffer:
         data = self.buffer.pop(0)
         return Stream(self.streamID,data[1],len(data[0]),data[0])
 
-    def toFileBuffer(self,stream):
+    @staticmethod
+    def toFileBuffer(stream):
         """
         convert the stream to FileBuffer
         :param stream: Stream Object
         :return: FileBuffer Object
         """
+        # open(stream.stream_id + ".txt","w").close()
+        fileBuffer = FileBuffer("")
+        fileBuffer.streamID = stream.stream_id
+        fileBuffer.packageSize = stream.length
+        fileBuffer.buffer = [stream.stream_data]
+        return fileBuffer
+
 class BufferManager:
 
     def __init__(self,file_list):
@@ -86,14 +94,15 @@ class BufferManager:
         """
         self.fileBuffers = []
         self.minPackageSize = 2000
+        self.res = 0
         for i in range(0, len(file_list)):
             fileBuffer = FileBuffer(file_list[i])
+            self.res += fileBuffer.fileHandler.fileSize
             if fileBuffer.packageSize < self.minPackageSize:
                 self.minPackageSize = fileBuffer.packageSize
             self.fileBuffers.append(fileBuffer)
         self.lock = Lock()
         self.running = True
-
 
     ### Implement this functions async
     def manage(self):
@@ -136,14 +145,24 @@ class BufferManager:
                 break
         return streamsToSend
 
+    # def unpack(self,payload):
+    #     """
+    #     convert the data from packet to Buffer Manager
+    #     :param payload: data from quicPacket
+    #     :return: BufferManager Object
+    #     """
+    #     for stream in payload:
+    #         found = False
+    #         for fileBuffer in self.fileBuffers:
+    #             if fileBuffer.streamID == stream.stream_id:
+    #                 fileBuffer.buffer.append(stream.stream_data)
+    #                 found = True
+    #
+    #         if not found:
+    #             self.fileBuffers.append(FileBuffer.toFileBuffer(stream))
 
 
-    def unpack(self,payload):
-        """
-        convert the data from packet to Buffer Manager
-        :param payload: data from quicPacket
-        :return: BufferManager Object
-        """
+
 
 
 
