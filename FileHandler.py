@@ -20,7 +20,7 @@ class FileHandler:
 
     def getData(self,size):
        """
-       cheבk if file reader has got to the end of the file,
+       check if file reader has got to the end of the file,
        if not, return the size paramter of data
        if data is less than wanted size, set self.EOF to True
        else yes set self.EOF to True

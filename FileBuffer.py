@@ -104,6 +104,7 @@ class BufferManager:
         self.lock = Lock()
         self.running = True
 
+
     ### Implement this functions async
     def manage(self):
         """
@@ -174,16 +175,16 @@ if __name__ == '__main__':
     i=0
     g=[1]
     while g!=[]:
-        time.sleep(0.00000005)
+        time.sleep(0.000005)
         g = b.pack(5000)
         i+=1
         t = 0
         for l in g:
             t+=l.length
 
-        print(t,g)
-
-    print(i)
+    #     print(t,g)
+    #
+    # print(i)
     for f in b.fileBuffers:
         print(f.fileHandler.EOF)
 
