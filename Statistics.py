@@ -20,6 +20,14 @@ class Statistics:
             if not found:
                 self.streams.append(stream)
 
+    def hagit_check(self):
+        for stream in self.streams:
+            with open(f"Files/{stream.stream_id}.txt", "wb") as f:
+                data_to_write = stream.stream_data
+                if isinstance(data_to_write, str):
+                    data_to_write = data_to_write.encode()
+                f.write(data_to_write)
+
 
 
 

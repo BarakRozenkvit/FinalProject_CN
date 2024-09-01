@@ -4,9 +4,6 @@ import time
 from threading import Thread, Lock
 from QUIC import Stream
 from FileHandler import FileHandler
-
-
-
 class FileBuffer:
 
     def __init__(self,path):
@@ -21,7 +18,7 @@ class FileBuffer:
         self.bufferMaxSize = 5
         self.threshold = 2
         self.packageSize = random.randint(1000,2000)
-        self.streamID = random.randint(1,20)
+        self.streamID = random.randint(1,2000)
         self.fileHandler = FileHandler(path)
 
     def isEmpty(self):
@@ -104,7 +101,6 @@ class BufferManager:
         self.lock = Lock()
         self.running = True
 
-
     ### Implement this functions async
     def manage(self):
         """
@@ -175,16 +171,16 @@ if __name__ == '__main__':
     i=0
     g=[1]
     while g!=[]:
-        time.sleep(0.000005)
+        time.sleep(0.00000005)
         g = b.pack(5000)
         i+=1
         t = 0
         for l in g:
             t+=l.length
 
-    #     print(t,g)
-    #
-    # print(i)
+        print(t,g)
+
+    print(i)
     for f in b.fileBuffers:
         print(f.fileHandler.EOF)
 
