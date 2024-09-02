@@ -16,6 +16,7 @@ class FileHandler:
         if(path != ""):
             self.reader = open(path,"r")
             self.fileSize = os.path.getsize(self.path)
+            print(self.path , " : " , self.fileSize)
         self.EOF = False
 
     def getData(self,size):
