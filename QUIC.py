@@ -1,6 +1,9 @@
+import json
 import pickle
 import random
-from socket import AF_INET,SOCK_DGRAM,socket
+import struct
+from socket import AF_INET, SOCK_DGRAM, socket
+from sys import getsizeof
 
 
 class quicSocket:
@@ -11,18 +14,14 @@ class quicSocket:
         self.connection_id: unique id of the socket
         self.dest_connection_id: the unique id of the destination connection
         """
-        print("Initializing quicSocket...")
         self.socket = socket(AF_INET, SOCK_DGRAM)
-        print("Socket created.")
-        self.connection_id =random.randint(1 ,100)
-        print(f"Generated connection ID: {self.connection_id}")
-        self.num_pack_send=0
+        self.connection_id = random.randint(1, 100)
         self.dest_connection_id = None
         self.packetNumber = 0
         self.bufferSize = 9000
-        print("Initializing quicSocket end...")
+        self.largestACK = 0
 
-    def connect(self,serverAddress):
+    def connect(self, serverAddress):
         """
         1. send connection request
         2. wait for response and save the dest_conncetion_id
@@ -30,87 +29,81 @@ class quicSocket:
         :return: void
         """
         self.packetNumber += 1
-        packet = quicPacket(self.connection_id,self.packetNumber,[])
-        self.socket.sendto(packet.pack(),serverAddress)
+        packet = quicPacket('S', self.connection_id, self.packetNumber, [ACK(self.largestACK,-1)])
+        data_to_send = packet.pack()
+        self.socket.sendto(data_to_send, serverAddress)
 
-        buffer, serverAddress = self.socket.recvfrom(self.bufferSize)
-        buffer = quicPacket.unpack(buffer)
+        data, serverAddress = self.socket.recvfrom(self.bufferSize)
+        buffer = quicPacket.unpack(data)
+        if self.largestACK + 1 == buffer.packet_number:
+            self.largestACK += 1
+        else:
+            print("Didnt got ack")
+            exit(1)
         self.dest_connection_id = buffer.dest_connection_id
-        print("Connection successfully established to", serverAddress)
 
-    def accept(self,buffer_size):
+    def accept(self, buffer_size):
         """
         1. receive connection request and save the dest_conncetion_id
         2. send connection accept
         :param buffer_size:
         :return:
         """
-        buffer, clientAddress = self.socket.recvfrom(self.bufferSize)
-        buffer = quicPacket.unpack(buffer)
+        data, clientAddress = self.socket.recvfrom(self.bufferSize)
+        buffer = quicPacket.unpack(data)
+        if self.largestACK + 1 == buffer.packet_number:
+            self.largestACK += 1
+        else:
+            print("Didnt got ack")
+            exit(1)
         self.dest_connection_id = buffer.dest_connection_id
 
-        print("got Connection request from", clientAddress)
         self.packetNumber += 1
-        packet = quicPacket(self.connection_id, self.packetNumber, [])
+        packet = quicPacket('S', self.connection_id, self.packetNumber, [ACK(self.largestACK,-1)])
         self.socket.sendto(packet.pack(), clientAddress)
         return clientAddress
 
-    def send(self,serverAddress,data):
+    def send(self, serverAddress, data=[]):
         """
         1. send data
-        2. wait for ACK
         :param serverAddress
         :param data
         :return:
         """
         self.packetNumber += 1
-        packet = quicPacket(self.dest_connection_id,self.packetNumber,data)
-        self.socket.sendto(packet.pack(),serverAddress)
-        print(f"Sent data: {data}")
+        data.insert(0,ACK(self.largestACK,-1))
+        packet = quicPacket('S', self.dest_connection_id, self.packetNumber, data)
+        data_to_send = packet.pack()
+        self.socket.sendto(data_to_send, serverAddress)
+
+    def receive(self, buffer_size):
+        """
+        1. receive data
+        :param buffer_size
+        :return:
+        """
         buffer, clientAddress = self.socket.recvfrom(self.bufferSize)
         buffer = quicPacket.unpack(buffer)
         if buffer.dest_connection_id != self.connection_id:
             return
+        if self.largestACK + 1 == buffer.packet_number:
+            self.largestACK += 1
+        else:
+            print("Didnt got ack")
 
-        ## handle ACK
-
-    def receive(self, buffer_size):
-        """
-        1. Receive data
-        2. Send ACK
-        :param buffer_size: The size of the buffer to use
-        :return: The payload from the received packet or an empty list
-        """
-        try:
-            buffer, clientAddress = self.socket.recvfrom(buffer_size)
-            if not buffer:
-                return []  # Handle unexpected empty buffer
-
-            buffer = quicPacket.unpack(buffer)
-            if buffer.dest_connection_id != self.connection_id:
-                return []  # Return empty list if the packet is not meant for this connection
-
-            # print(f"Received data: {buffer.payload}")
-            # Send acknowledgment
-            self.packetNumber += 1
-            ack_packet = quicPacket(self.dest_connection_id, self.packetNumber, [])
-            self.socket.sendto(ack_packet.pack(), clientAddress)
-
-            return buffer.payload
-
-        except Exception as e:
-            print(f"Error receiving data: {e}")
-            return []  # Return an empty list on error
+        return buffer.payload
 
 
 class quicPacket:
     """
+     Header Size = 9 Bytes
     QUIC Packet easy version for QUIC Short packet and QUIC Long packet
     """
-    def __init__(self,dst_connection_id,packet_number,payload):
-        self.flags = None
-        self.dest_connection_id = dst_connection_id
-        self.packet_number = packet_number
+
+    def __init__(self, flag, dst_connection_id, packet_number, payload):
+        self.flags = flag  # Character
+        self.dest_connection_id = dst_connection_id  # Integer
+        self.packet_number = packet_number  # Integer
         self.payload = payload
 
     def pack(self):
@@ -118,21 +111,45 @@ class quicPacket:
         serialize the packet
         :return:
         """
-        return pickle.dumps(self)
+        data = struct.pack("!cii", self.flags.encode(), self.dest_connection_id, self.packet_number)
+        for frame in self.payload:
+            if type(frame) == Stream:
+                encoded = frame.stream_data.encode()
+                data += struct.pack("!iii", frame.stream_id, len(encoded), frame.offset)
+                data += encoded
+            if type(frame) == ACK:
+                data += struct.pack("!ii", frame.largestACK, frame.ACKdelay)
+        return data
 
     @staticmethod
-    def unpack(packet):
+    def unpack(data):
         """
         deserialize the packet
         :param packet:
         :return:
         """
-        return pickle.loads(packet)
+        size = len(data)
+        p = 9
+        flag, dest_connection, packet_number = struct.unpack("!cii", data[0:p])
+        payload = []
+        largestACK, ackDelay = struct.unpack("!ii", data[p:p + 8])
+        p += 8
+        payload.append(ACK(largestACK, ackDelay))
+        while p < size:
+            stream_id, length, offset = struct.unpack("!iii", data[p:p + 12])
+            p += 12
+            stream_data = data[p:p + length].decode("utf-8")
+            p += length
+            payload.append(Stream(stream_id, offset, length, stream_data))
+
+        return quicPacket(flag.decode(), dest_connection, packet_number, payload)
+
 
 class Stream:
 
-    def __init__(self,ID,offset,length,data):
+    def __init__(self, ID, offset, length, data):
         """
+        Header Size = 12 Bytes
         :param ID: unique stream id
         :param offset: sequence number of data
         :param length: length of data
@@ -143,13 +160,12 @@ class Stream:
         self.length = length
         self.stream_data = data
 
+
 class ACK:
     """
-    ?
+    Header Size = 8 Bytes
     """
-    def __init__(self):
-        self.largestACK = 0
-        self.ACKdelay = None
-        self.ACKRangCount = None
-        self.firstACKRange = None
-        self.ACkRange = []
+
+    def __init__(self,largestACK,ACKdelay):
+        self.largestACK = largestACK
+        self.ACKdelay = ACKdelay

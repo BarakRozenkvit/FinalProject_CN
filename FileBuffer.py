@@ -21,7 +21,7 @@ class FileBuffer:
         """
         self.buffer = queue.Queue()
         self.packageSize = random.randint(1000,2000) ## Parameter to Divide Chunks of data for each flow (flow == file)
-        self.streamID = random.randint(1,2000)
+        self.streamID = random.randint(1,100)
         self.fileHandler = FileHandler(path)
 
     def isEmpty(self):

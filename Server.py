@@ -2,7 +2,7 @@ import sys
 import os
 import time
 from FileBuffer import BufferManager
-from QUIC import quicSocket
+from QUIC import quicSocket, Stream
 from threading import Thread
 
 SERVER_ADDRESS = ('', 12000)
@@ -22,9 +22,9 @@ def main():
     clientAddress = server.accept(BUFFER_SIZE)
     print("The server connected to peer")
 
-    num_flows = server.receive(BUFFER_SIZE)
+    payload = server.receive(BUFFER_SIZE)
     try:
-        num_flows_requested = int(num_flows[0])
+        num_flows_requested = int(payload[1].stream_data)
     except:
         print("Number of flows requested Invalid")
         exit()
@@ -43,7 +43,8 @@ def main():
 
         if not payload:  # Check if the payload is empty
             print("All data sent, sending exit signal to client.")
-            server.send(clientAddress, ["EXIT"])  # Send exit signal to client
+            info_stream = Stream(1,2,4,"EXIT")
+            server.send(clientAddress, [info_stream])  # Send exit signal to client
             break
 
         server.send(clientAddress, payload)

@@ -8,7 +8,7 @@ import Statistics
 
 SERVER_ADDRESS = ('localhost', 12000)
 BUFFER_SIZE = 9000
-NUM_FLOWS = 3
+NUM_FLOWS = 5
 
 
 def main(num_flows):
@@ -19,22 +19,29 @@ def main(num_flows):
     print("Client connected to server.")
 
     # Send the number of flows requested to the server
-    client.send(SERVER_ADDRESS, [str(num_flows)])
+    info_stream = Stream(1,2,1,str(num_flows))
+    client.send(SERVER_ADDRESS, [info_stream])
     print(f"Sent number of flows {num_flows} to server.")
 
     bytes_received = 0
     all_streams_data = []  # For storing the received stream data
     statistics = Statistics.Statistics()
+    progress = True
 
-    while True:
+    while progress:
         data = client.receive(BUFFER_SIZE)
-        if isinstance(data, list) and len(data) == 1 and data[0] == "EXIT":
-            print("Exit signal received. Closing connection.")
-            break
+        # if isinstance(data, list) and len(data) == 1 and data[0] == "EXIT":
+        #     print("Exit signal received. Closing connection.")
+        #     break
 
         for item in data:
             if isinstance(item, Stream):
                 stream_id = item.stream_id
+                if(stream_id == 1 and item.stream_data == "EXIT"):
+                    print("Exit signal received. Closing connection.")
+                    progress = False
+                    break
+
                 statistics.add_stream(stream_id)
                 statistics.update_stream(stream_id, len(item.stream_data),item.stream_data)
 

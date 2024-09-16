@@ -22,7 +22,6 @@ class Statistics:
             stream["total_bytes"] += data_length
             stream["total_packets"] += 1  # Assuming each data chunk is one packet
             stream["end_time"] = time.time()
-            stream["data"] += data
 
     # def hagit_check(self):
     #     for stream in self.streams:
@@ -71,3 +70,4 @@ class Statistics:
                 if(i == "data"):
                     continue
                 print(i, ": ", stats[stream][i])
+            print("------------------------------------")
