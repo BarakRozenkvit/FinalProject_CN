@@ -39,28 +39,28 @@ class Statistics:
 
         for stream_id, stream in self.streams.items():
             stream_time = stream["end_time"] - stream["start_time"]
-            avg_data_rate = stream["total_bytes"] / stream_time
-            avg_packet_rate = stream["total_packets"] / stream_time
+            avg_data_rate = stream["total_bytes"]/1000000 / stream_time
+            avg_packet_rate = stream["total_packets"] / stream_time/1000
 
             stats[stream_id] = {
                 "total_time (ms)": stream_time * 1000,
                 "total_bytes (bytes)": stream["total_bytes"],
                 "total_packets (number)": stream["total_packets"],
-                "avg_data_rate (bytes/sec)": avg_data_rate,
-                "avg_packet_rate (packet/sec)": avg_packet_rate
+                "avg_data_rate (MB/sec)": avg_data_rate,
+                "avg_packet_rate (packet/ms)": avg_packet_rate
             }
 
             total_bytes += stream["total_bytes"]
             total_packets += stream["total_packets"]
 
-        overall_data_rate = total_bytes / total_time if total_time > 0 else 0
-        overall_packet_rate = total_packets / total_time if total_time > 0 else 0
+        overall_data_rate = total_bytes/1000000 / total_time if total_time > 0 else 0
+        overall_packet_rate = total_packets / total_time/1000 if total_time > 0 else 0
 
         stats["overall"] = {
-            "total_bytes": total_bytes,
-            "total_packets": total_packets,
-            "avg_data_rate": overall_data_rate,
-            "avg_packet_rate": overall_packet_rate
+            "total_bytes (bytes)": total_bytes,
+            "total_packets (number)": total_packets,
+            "avg_data_rate (MB/sec)": overall_data_rate,
+            "avg_packet_rate (packet/ms)": overall_packet_rate
         }
 
         print("Overall statistics:\n-----------------------------------")

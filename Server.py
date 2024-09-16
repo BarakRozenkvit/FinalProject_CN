@@ -32,8 +32,6 @@ def main():
     print("Creating database of files to send...")
     buffer_manager = BufferManager(files_to_send[:num_flows_requested])
     buffer_manager.manage()
-    # manage_storage_thread = Thread(target=buffer_manager.manage, daemon=True)
-    # manage_storage_thread.start()
 
 
     while True:
@@ -49,9 +47,6 @@ def main():
 
         server.send(clientAddress, payload)
         print("Sent payload to client.")
-
-        # else:
-        #     print("Unexpected data format received from client.")
 
     server.socket.close()
     print("Server socket closed. Transmission complete.")

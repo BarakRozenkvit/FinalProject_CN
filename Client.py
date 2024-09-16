@@ -30,9 +30,6 @@ def main(num_flows):
 
     while progress:
         data = client.receive(BUFFER_SIZE)
-        # if isinstance(data, list) and len(data) == 1 and data[0] == "EXIT":
-        #     print("Exit signal received. Closing connection.")
-        #     break
 
         for item in data:
             if isinstance(item, Stream):
