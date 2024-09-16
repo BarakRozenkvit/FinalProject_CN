@@ -2,8 +2,8 @@ import unittest
 import time
 import random
 from threading import Thread
-from Client import start_client
-from Server import BUFFER_SIZE, SERVER_ADDRESS
+from Client1 import start_client
+from Server1 import BUFFER_SIZE, SERVER_ADDRESS
 from QUIC import quicSocket, Stream
 from FileBuffer import BufferManager
 import os
@@ -27,7 +27,7 @@ class TestQUIC(unittest.TestCase):
     @classmethod
     def run_server(cls):
         # This method runs the server in a separate thread
-        from Server import BUFFER_SIZE, SERVER_ADDRESS, quicSocket, BufferManager
+        from Server1 import BUFFER_SIZE, SERVER_ADDRESS, quicSocket, BufferManager
         cls.server_running = True
         print("Starting server...")
         buffer_manager = BufferManager(["Files/1.txt", "Files/2.txt", "Files/4.txt", "Files/5.txt"])

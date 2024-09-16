@@ -2,6 +2,8 @@ import random
 import sys
 import time
 from threading import Thread, Lock
+from turtledemo.sorting_animate import Block
+
 from QUIC import Stream
 from FileHandler import FileHandler
 import queue
@@ -17,8 +19,8 @@ class FileBuffer:
         self.packageSize: size of each package of data from file
         self.fileHandler: FileHandler Object
         """
-        self.buffer = queue.Queue(maxsize=10)
-        self.packageSize = random.randint(1000,2000)
+        self.buffer = queue.Queue()
+        self.packageSize = random.randint(1000,2000) ## Parameter to Divide Chunks of data for each flow (flow == file)
         self.streamID = random.randint(1,2000)
         self.fileHandler = FileHandler(path)
 
@@ -34,8 +36,8 @@ class FileBuffer:
         this function fills the buffer
         :return:
         """
-        if not (self.fileHandler.EOF):
-            data = (self.fileHandler.getData(self.packageSize),self.fileHandler.getSequenceNumber())
+        while not self.fileHandler.EOF:
+            data = (self.fileHandler.getData(self.packageSize), self.fileHandler.getSequenceNumber())
             self.buffer.put(data)
 
     def toStream(self):
@@ -44,22 +46,8 @@ class FileBuffer:
         2. convert to Stream
         :return: Stream Object
         """
-        data = self.buffer.get()
+        data = self.buffer.get(block=False)
         return Stream(self.streamID,data[1],len(data[0]),data[0])
-
-    @staticmethod
-    def toFileBuffer(stream):
-        """
-        convert the stream to FileBuffer
-        :param stream: Stream Object
-        :return: FileBuffer Object
-        """
-        # open(stream.stream_id + ".txt","w").close()
-        fileBuffer = FileBuffer("")
-        fileBuffer.streamID = stream.stream_id
-        fileBuffer.packageSize = stream.length
-        fileBuffer.buffer = [stream.stream_data]
-        return fileBuffer
 
 class BufferManager:
 
@@ -87,9 +75,8 @@ class BufferManager:
         lock the buffer to the thread, fill it and release the buffer
         :return: void
         """
-        while self.running:
-            for fileBuffer in self.fileBuffers:
-                fileBuffer.fillBuffer()
+        for fileBuffer in self.fileBuffers:
+            fileBuffer.fillBuffer()
 
     def pack(self,payload_size):
         """
@@ -102,30 +89,37 @@ class BufferManager:
         :return: Stream array
         """
         streamsToSend = []
-        while payload_size > self.minPackageSize and self.running:
-            EmptyBuffers = True
-            random.shuffle(self.fileBuffers)
-            for fileBuffer in self.fileBuffers:
-                if (not fileBuffer.isEmpty()) and fileBuffer.packageSize < payload_size:
-                    EmptyBuffers = False
-                    streamsToSend.append(fileBuffer.toStream())
-                    payload_size -= fileBuffer.packageSize
-            if EmptyBuffers:
+        while payload_size >=0:
+            res = 0
+            idx = list(range(0,len(self.fileBuffers)))
+            random.shuffle(idx)
+            for i in idx:
+                if (payload_size  - self.fileBuffers[i].packageSize < 0 or self.fileBuffers[i].buffer.qsize() == 0):
+                    res+=1
+                    continue
+
+                add = self.fileBuffers[i].toStream()
+                streamsToSend.append(add)
+                payload_size -= self.fileBuffers[i].packageSize
+
+            if( res == len(self.fileBuffers)):
                 break
+
         return streamsToSend
 
 
 
 
 if __name__ == '__main__':
-    b = BufferManager(["Files/1.txt","Files/2.txt","Files/3.txt","Files/4.txt","Files/5.txt"])
-    t = Thread(target=b.manage)
-    t.start()
+    b = BufferManager(["Files/1.txt","Files/2.txt","Files/3.txt","Files/4.txt"])
+    b.manage()
+    # t = Thread(target=b.manage)
+    # t.start()
     i=0
     g=[1]
     while g!=[]:
         time.sleep(0.00000005)
-        g = b.pack(5000)
+        g = b.pack(3000)
         i+=1
         t = 0
         for l in g:

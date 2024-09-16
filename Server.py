@@ -1,17 +1,17 @@
 import sys
+import os
 import time
 from FileBuffer import BufferManager
 from QUIC import quicSocket
 from threading import Thread
 
 SERVER_ADDRESS = ('', 12000)
-BUFFER_SIZE = 9000
+BUFFER_SIZE= 5000
 
-if __name__ == '__main__':
-    print("Creating database of files to send...")
-    buffer_manager = BufferManager(["Files/1.txt", "Files/2.txt","Files/3.txt", "Files/4.txt", "Files/5.txt"])
-    manage_storage_thread = Thread(target=buffer_manager.manage, daemon=True)
-    manage_storage_thread.start()
+def main():
+    cwd = os.getcwd() + "/Files"
+    files_to_send = [os.path.join(cwd, f) for f in os.listdir(cwd) if
+                 os.path.isfile(os.path.join(cwd, f))]
 
     print("Creating server socket...")
     server = quicSocket()
@@ -22,9 +22,24 @@ if __name__ == '__main__':
     clientAddress = server.accept(BUFFER_SIZE)
     print("The server connected to peer")
 
+    num_flows = server.receive(BUFFER_SIZE)
+    try:
+        num_flows_requested = int(num_flows[0])
+    except:
+        print("Number of flows requested Invalid")
+        exit()
+
+    print("Creating database of files to send...")
+    buffer_manager = BufferManager(files_to_send[:num_flows_requested])
+    buffer_manager.manage()
+    # manage_storage_thread = Thread(target=buffer_manager.manage, daemon=True)
+    # manage_storage_thread.start()
+
+
     while True:
         # Pack data into streams with a total payload size of up to 5000 bytes
-        payload = buffer_manager.pack(5000)
+        payload = buffer_manager.pack(BUFFER_SIZE)
+        print(f"Packed payload: {payload}")
 
         if not payload:  # Check if the payload is empty
             print("All data sent, sending exit signal to client.")
@@ -32,7 +47,13 @@ if __name__ == '__main__':
             break
 
         server.send(clientAddress, payload)
-        # time.sleep(0.1)  # Adding a small delay to manage flow and avoid flooding the client
+        print("Sent payload to client.")
+
+        # else:
+        #     print("Unexpected data format received from client.")
 
     server.socket.close()
     print("Server socket closed. Transmission complete.")
+
+if __name__ == '__main__':
+    main()

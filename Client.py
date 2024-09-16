@@ -1,21 +1,26 @@
 import random
 import time
-from QUIC import quicSocket
-from QUIC import Stream
+from turtledemo.penrose import start
+
+from QUIC import quicSocket, Stream
 from FileBuffer import BufferManager
 import Statistics
 
 SERVER_ADDRESS = ('localhost', 12000)
 BUFFER_SIZE = 9000
+NUM_FLOWS = 3
 
 
-def start_client(num_flows):
+def main(num_flows):
+
     print(f"Starting client with {num_flows} flows...")
     client = quicSocket()
     client.connect(SERVER_ADDRESS)
     print("Client connected to server.")
 
-    packet_size = random.randint(1000, 2000)  # Random packet size between 1000 and 2000 bytes
+    # Send the number of flows requested to the server
+    client.send(SERVER_ADDRESS, [str(num_flows)])
+    print(f"Sent number of flows {num_flows} to server.")
 
     bytes_received = 0
     all_streams_data = []  # For storing the received stream data
@@ -27,26 +32,17 @@ def start_client(num_flows):
             print("Exit signal received. Closing connection.")
             break
 
-        if isinstance(data, list):
-            for stream in data:
-                if isinstance(stream, Stream):
-                    bytes_received += len(stream.stream_data)
-                    all_streams_data.append(stream)
-                    statistics.unpack([stream])
-
-    print(f"Overall bytes received: {bytes_received}")
-
-    statistics.hagit_check()
-
-
-    print("Statistics per stream:")
-    for stream in statistics.streams:
-        print(f"Stream ID: {stream.stream_id}, Data length: {len(stream.stream_data)}")
+        for item in data:
+            if isinstance(item, Stream):
+                stream_id = item.stream_id
+                statistics.add_stream(stream_id)
+                statistics.update_stream(stream_id, len(item.stream_data),item.stream_data)
 
     client.socket.close()
+    print("Client socket closed.")
+    statistics.calculate_statistics()
+
 
 
 if __name__ == '__main__':
-    # for num_flows in range(1, 11):
-    start_client(1)
-    time.sleep(2)  # Wait between tests
+    main(NUM_FLOWS)  # Adjust the number of flows as needed

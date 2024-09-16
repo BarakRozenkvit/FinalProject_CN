@@ -31,6 +31,7 @@ class FileHandler:
             data = self.reader.read(size)
             if len(data) < size:
                 self.EOF = True
+                # data += "EOF"
                 #print(self.path, " is Finished")
             return data
        else:
@@ -45,12 +46,7 @@ class FileHandler:
 
 if __name__ == '__main__':
     d = FileHandler("Files/1.txt")
-    f =d.getData(1000)
-    print(len(f))
-    g =d.getData(1000)
-    print(len(g))
-    s = d.getData(1000)
-    print(len(s))
-    m = d.getData(1000)
-    print(len(m))
+    g =d.getData(88800)
+    g = d.getData(880)
+
     print(1)
