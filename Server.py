@@ -2,7 +2,7 @@ import sys
 import os
 import time
 from FileBuffer import BufferManager
-from QUIC import quicSocket, Stream
+from QUIC import quicSocket, Stream ,ACK
 from threading import Thread
 
 SERVER_ADDRESS = ('', 12000)
@@ -33,7 +33,6 @@ def main():
     buffer_manager = BufferManager(files_to_send[:num_flows_requested])
     buffer_manager.manage()
 
-
     while True:
         # Pack data into streams with a total payload size of up to 5000 bytes
         payload = buffer_manager.pack(BUFFER_SIZE)
@@ -41,7 +40,7 @@ def main():
 
         if not payload:  # Check if the payload is empty
             print("All data sent, sending exit signal to client.")
-            info_stream = Stream(1,2,4,"EXIT")
+            info_stream = Stream(1, 2, 4, "EXIT")
             server.send(clientAddress, [info_stream])  # Send exit signal to client
             break
 
@@ -50,6 +49,7 @@ def main():
 
     server.socket.close()
     print("Server socket closed. Transmission complete.")
+
 
 if __name__ == '__main__':
     main()

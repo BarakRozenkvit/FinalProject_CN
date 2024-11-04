@@ -17,9 +17,12 @@ class quicSocket:
         self.socket = socket(AF_INET, SOCK_DGRAM)
         self.connection_id = random.randint(1, 100)
         self.dest_connection_id = None
-        self.packetNumber = 0
+        self.PacketNumber = 0
+        # self.lastNumberPacketReceive=0
         self.bufferSize = 9000
         self.largestACK = 0
+        self.last_num_of_bytes_Received=0
+        self.totalBytesSend=0
 
     def connect(self, serverAddress):
         """
@@ -28,17 +31,16 @@ class quicSocket:
         :param serverAddress: address of the server
         :return: void
         """
-        self.packetNumber += 1
-        packet = quicPacket('S', self.connection_id, self.packetNumber, [ACK(self.largestACK,-1)])
+        self.PacketNumber += 1
+        packet = quicPacket('S', self.connection_id, self.PacketNumber, [ACK(self.last_num_of_bytes_Received)])
         data_to_send = packet.pack()
         self.socket.sendto(data_to_send, serverAddress)
 
         data, serverAddress = self.socket.recvfrom(self.bufferSize)
         buffer = quicPacket.unpack(data)
-        if self.largestACK + 1 == buffer.packet_number:
-            self.largestACK += 1
-        else:
-            print("Didnt got ack")
+
+        if not self.totalBytesSend + 1 == buffer.payload[0].num_of_bytes:
+            print("Didnt got some packet")
             exit(1)
         self.dest_connection_id = buffer.dest_connection_id
 
@@ -49,6 +51,7 @@ class quicSocket:
         :param buffer_size:
         :return:
         """
+
         data, clientAddress = self.socket.recvfrom(self.bufferSize)
         buffer = quicPacket.unpack(data)
         if self.largestACK + 1 == buffer.packet_number:
@@ -58,8 +61,8 @@ class quicSocket:
             exit(1)
         self.dest_connection_id = buffer.dest_connection_id
 
-        self.packetNumber += 1
-        packet = quicPacket('S', self.connection_id, self.packetNumber, [ACK(self.largestACK,-1)])
+        self.PacketNumber += 1
+        packet = quicPacket('S', self.connection_id, self.PacketNumber, [ACK()])
         self.socket.sendto(packet.pack(), clientAddress)
         return clientAddress
 
@@ -70,11 +73,13 @@ class quicSocket:
         :param data
         :return:
         """
-        self.packetNumber += 1
-        data.insert(0,ACK(self.largestACK,-1))
-        packet = quicPacket('S', self.dest_connection_id, self.packetNumber, data)
+        self.PacketNumber += 1
+        data.insert(0,ACK(self.last_num_of_bytes_Received+1))
+        packet = quicPacket('S', self.dest_connection_id, self.PacketNumber, data)
         data_to_send = packet.pack()
         self.socket.sendto(data_to_send, serverAddress)
+        self.totalBytesSend+=len(data_to_send)
+
 
     def receive(self, buffer_size):
         """
@@ -86,10 +91,8 @@ class quicSocket:
         buffer = quicPacket.unpack(buffer)
         if buffer.dest_connection_id != self.connection_id:
             return
-        if self.largestACK + 1 == buffer.packet_number:
-            self.largestACK += 1
-        else:
-            print("Didnt got ack")
+        if not self.totalBytesSend+1==buffer.payload[0].num_of_bytes:
+            print("Didnt got some packet")
 
         return buffer.payload
 
@@ -118,7 +121,7 @@ class quicPacket:
                 data += struct.pack("!iii", frame.stream_id, len(encoded), frame.offset)
                 data += encoded
             if type(frame) == ACK:
-                data += struct.pack("!ii", frame.largestACK, frame.ACKdelay)
+                data += struct.pack("!i", frame.num_of_bytes)
         return data
 
     @staticmethod
@@ -132,9 +135,9 @@ class quicPacket:
         p = 9
         flag, dest_connection, packet_number = struct.unpack("!cii", data[0:p])
         payload = []
-        largestACK, ackDelay = struct.unpack("!ii", data[p:p + 8])
-        p += 8
-        payload.append(ACK(largestACK, ackDelay))
+        num_of_bytes= struct.unpack("!i", data[p:p + 4])
+        p += 4
+        payload.append(ACK(num_of_bytes))
         while p < size:
             stream_id, length, offset = struct.unpack("!iii", data[p:p + 12])
             p += 12
@@ -162,10 +165,5 @@ class Stream:
 
 
 class ACK:
-    """
-    Header Size = 8 Bytes
-    """
-
-    def __init__(self,largestACK,ACKdelay):
-        self.largestACK = largestACK
-        self.ACKdelay = ACKdelay
+    def __init__(self, num_of_bytes):
+        self.num_of_bytes=num_of_bytes

@@ -1,6 +1,5 @@
 import random
 import time
-from turtledemo.penrose import start
 
 from QUIC import quicSocket, Stream
 from FileBuffer import BufferManager

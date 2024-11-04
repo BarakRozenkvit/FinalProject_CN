@@ -1,12 +1,9 @@
-import random
-import sys
-import time
-from threading import Thread, Lock
-from turtledemo.sorting_animate import Block
-
-from QUIC import Stream
-from FileHandler import FileHandler
 import queue
+import random
+import time
+
+from FileHandler import FileHandler
+from QUIC import Stream
 
 
 class FileBuffer:
