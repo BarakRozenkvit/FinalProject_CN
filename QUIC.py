@@ -8,7 +8,7 @@ from sys import getsizeof
 
 class quicSocket:
 
-    def __init__(self):
+    def __init__(self,buffer_size):
         """
         self.socket: UDP socket of quic Socket
         self.connection_id: unique id of the socket
@@ -18,11 +18,9 @@ class quicSocket:
         self.connection_id = random.randint(1, 100)
         self.dest_connection_id = None
         self.PacketNumber = 0
-        # self.lastNumberPacketReceive=0
-        self.bufferSize = 9000
-        self.largestACK = 0
-        self.last_num_of_bytes_Received=0
-        self.totalBytesSend=0
+        self.buffer_size = buffer_size
+        self.bytes_received=0
+        self.bytes_sent=0
 
     def connect(self, serverAddress):
         """
@@ -31,42 +29,24 @@ class quicSocket:
         :param serverAddress: address of the server
         :return: void
         """
-        self.PacketNumber += 1
-        packet = quicPacket('S', self.connection_id, self.PacketNumber, [ACK(self.last_num_of_bytes_Received)])
-        data_to_send = packet.pack()
-        self.socket.sendto(data_to_send, serverAddress)
 
-        data, serverAddress = self.socket.recvfrom(self.bufferSize)
-        buffer = quicPacket.unpack(data)
-
-        if not self.totalBytesSend + 1 == buffer.payload[0].num_of_bytes:
-            print("Didnt got some packet")
-            exit(1)
+        self.send("SYN",serverAddress)
+        buffer,clientAddress = self.receive(self.buffer_size)
         self.dest_connection_id = buffer.dest_connection_id
 
-    def accept(self, buffer_size):
+    def accept(self):
         """
         1. receive connection request and save the dest_conncetion_id
         2. send connection accept
         :param buffer_size:
         :return:
         """
-
-        data, clientAddress = self.socket.recvfrom(self.bufferSize)
-        buffer = quicPacket.unpack(data)
-        if self.largestACK + 1 == buffer.packet_number:
-            self.largestACK += 1
-        else:
-            print("Didnt got ack")
-            exit(1)
+        buffer,clientAddress = self.receive()
         self.dest_connection_id = buffer.dest_connection_id
-
-        self.PacketNumber += 1
-        packet = quicPacket('S', self.connection_id, self.PacketNumber, [ACK()])
-        self.socket.sendto(packet.pack(), clientAddress)
+        self.send("SYN",clientAddress)
         return clientAddress
 
-    def send(self, serverAddress, data=[]):
+    def send(self,messageType, serverAddress, data=[]):
         """
         1. send data
         :param serverAddress
@@ -74,27 +54,33 @@ class quicSocket:
         :return:
         """
         self.PacketNumber += 1
-        data.insert(0,ACK(self.last_num_of_bytes_Received+1))
-        packet = quicPacket('S', self.dest_connection_id, self.PacketNumber, data)
+        data.insert(0,ACK(self.bytes_received+1))
+        
+        if(messageType is "SYN"):
+            packet = quicPacket('S', self.dest_connection_id, self.PacketNumber, data)
+        elif(messageType is "MESSAGE"):
+            packet = quicPacket('M', self.dest_connection_id, self.PacketNumber, data)
+        else:
+            packet = quicPacket('F', self.dest_connection_id, self.PacketNumber, data)
+
         data_to_send = packet.pack()
         self.socket.sendto(data_to_send, serverAddress)
-        self.totalBytesSend+=len(data_to_send)
+        self.bytes_sent+=len(data_to_send)
 
-
-    def receive(self, buffer_size):
+    def receive(self):
         """
         1. receive data
         :param buffer_size
         :return:
         """
-        buffer, clientAddress = self.socket.recvfrom(self.bufferSize)
+        buffer, clientAddress = self.socket.recvfrom(self.buffer_size)
         buffer = quicPacket.unpack(buffer)
         if buffer.dest_connection_id != self.connection_id:
             return
-        if not self.totalBytesSend+1==buffer.payload[0].num_of_bytes:
+        if not self.bytes_sent+1==buffer.payload[0].num_of_bytes:
             print("Didnt got some packet")
 
-        return buffer.payload
+        return buffer, clientAddress
 
 
 class quicPacket:

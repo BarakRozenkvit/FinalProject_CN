@@ -14,17 +14,17 @@ def main():
                  os.path.isfile(os.path.join(cwd, f))]
 
     print("Creating server socket...")
-    server = quicSocket()
+    server = quicSocket(BUFFER_SIZE)
 
     print("The server is binding to ", SERVER_ADDRESS)
     server.socket.bind(SERVER_ADDRESS)
     print("The server is ready to accept new incoming connections.")
-    clientAddress = server.accept(BUFFER_SIZE)
+    clientAddress = server.accept()
     print("The server connected to peer")
 
-    payload = server.receive(BUFFER_SIZE)
+    buffer, clientAddress = server.receive()
     try:
-        num_flows_requested = int(payload[1].stream_data)
+        num_flows_requested = int(buffer.payload[1].stream_data)
     except:
         print("Number of flows requested Invalid")
         exit()

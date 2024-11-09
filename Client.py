@@ -13,7 +13,7 @@ NUM_FLOWS = 5
 def main(num_flows):
 
     print(f"Starting client with {num_flows} flows...")
-    client = quicSocket()
+    client = quicSocket(BUFFER_SIZE)
     client.connect(SERVER_ADDRESS)
     print("Client connected to server.")
 
@@ -28,9 +28,9 @@ def main(num_flows):
     progress = True
 
     while progress:
-        data = client.receive(BUFFER_SIZE)
+        buffer, serverAddress = client.receive()
 
-        for item in data:
+        for item in buffer.payload:
             if isinstance(item, Stream):
                 stream_id = item.stream_id
                 if(stream_id == 1 and item.stream_data == "EXIT"):
