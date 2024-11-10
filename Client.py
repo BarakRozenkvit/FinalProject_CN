@@ -19,7 +19,7 @@ def main(num_flows):
 
     # Send the number of flows requested to the server
     info_stream = Stream(1,2,1,str(num_flows))
-    client.send(SERVER_ADDRESS, [info_stream])
+    client.send(['D','A'],SERVER_ADDRESS, [info_stream])
     print(f"Sent number of flows {num_flows} to server.")
 
     bytes_received = 0
@@ -40,7 +40,9 @@ def main(num_flows):
 
                 statistics.add_stream(stream_id)
                 statistics.update_stream(stream_id, len(item.stream_data),item.stream_data)
-
+            
+        client.send(['A'],serverAddress)
+    
     client.socket.close()
     print("Client socket closed.")
     statistics.calculate_statistics()

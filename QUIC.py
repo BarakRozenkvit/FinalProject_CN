@@ -4,6 +4,7 @@ import random
 import struct
 from socket import AF_INET, SOCK_DGRAM, socket
 from sys import getsizeof
+import time
 
 
 class quicSocket:
@@ -54,29 +55,31 @@ class quicSocket:
         :param data
         :return:
         """
+        print("------")
         self.PacketNumber += 1
         if len(packet_flags) == 1:
             packet_flags.append('0')
 
         if 'A' in packet_flags:
-            print("Send ACK for: " ,self.bytes_received+1)
-            print("Bytes Received: ", self.bytes_received)
-            print("Bytes Sent: " , self.bytes_sent)
+            print("Packing ACK")
             data.insert(0,ACK(self.bytes_received+1))
         
         if 'S' in packet_flags:
-            print("Send SYN")
+            print("Packing SYN")
             packet = quicPacket(packet_flags, self.connection_id, self.PacketNumber, data)
-        elif 'M' in packet_flags:
-            print("Send DATA")
+        elif 'D' in packet_flags:
+            print("Packing DATA")
             packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
         elif 'F' in packet_flags:
-            print("Send FIN")
+            print("Packing FIN")
             packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
 
         data_to_send = packet.pack()
         self.bytes_sent+=len(data_to_send)
+        print("Bytes Sent: " , self.bytes_sent)
         self.socket.sendto(data_to_send, serverAddress)
+        print("------")
+
 
     def receive(self):
         """
@@ -84,32 +87,34 @@ class quicSocket:
         :param buffer_size
         :return:
         """
+        print("------")
         buffer, clientAddress = self.socket.recvfrom(self.buffer_size)
-        buffer = quicPacket.unpack(buffer)
+        self.bytes_received+=len(buffer)
+        print("Bytes Received: ", self.bytes_received)
         
+        buffer = quicPacket.unpack(buffer)
+
         if 'S' in buffer.flags:
-            print("Got SYN")
+            print("Unpacking SYN")
             self.dest_connection_id = buffer.dest_connection_id
 
-        elif 'M' in  buffer.flags:
-            print("Got DATA")
+        elif 'D' in  buffer.flags:
+            print("Unpacking DATA")
             if buffer.dest_connection_id != self.connection_id:
                 ## Wrong client
                 return
             
         elif 'F' in buffer.flags:
-            print("Got FIN")
+            print("Unpacking FIN")
             i =0
             
         if 'A' in buffer.flags:
-            print("Got ACK for: " ,buffer.payload[0].num_of_bytes)
-            print("Bytes Received: ", self.bytes_received)
-            print("Bytes Sent: " , self.bytes_sent)
-            
+            print("Unpacking ACK")
+            print("All Bytes ACK: ", buffer.payload[0].num_of_bytes - 1 == self.bytes_sent, "Next Bytes Requested: ",buffer.payload[0].num_of_bytes)
             if not self.bytes_sent+1==buffer.payload[0].num_of_bytes:
                 print("Didnt got some packet")
 
-        
+        print("------")
 
         return buffer, clientAddress
 
@@ -154,9 +159,9 @@ class quicPacket:
         flags = [type.decode(),ack.decode()]
         payload = []
         if 'A' in flags:
-            num_of_bytes= struct.unpack("!i", data[p:p + 4])
+            num_of_bytes = struct.unpack("!i", data[p:p + 4])
             p += 4
-            payload.append(ACK(num_of_bytes))
+            payload.append(ACK(num_of_bytes[0]))
         if 'M' in flags:
             while p < size:
                 stream_id, length, offset = struct.unpack("!iii", data[p:p + 12])

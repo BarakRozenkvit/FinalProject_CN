@@ -41,10 +41,10 @@ def main():
         if not payload:  # Check if the payload is empty
             print("All data sent, sending exit signal to client.")
             info_stream = Stream(1, 2, 4, "EXIT")
-            server.send(clientAddress, [info_stream])  # Send exit signal to client
+            server.send(['D'],clientAddress, [info_stream])  # Send exit signal to client
             break
 
-        server.send(clientAddress, payload)
+        server.send(['D'],clientAddress, payload)
         print("Sent payload to client.")
 
     server.socket.close()
