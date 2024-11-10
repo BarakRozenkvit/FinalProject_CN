@@ -110,7 +110,7 @@ class quicSocket:
             
         if 'A' in buffer.flags:
             print("Unpacking ACK")
-            print("All Bytes ACK: ", buffer.payload[0].num_of_bytes - 1 == self.bytes_sent, "Next Bytes Requested: ",buffer.payload[0].num_of_bytes)
+            print("ACK Data of 2nd endpoint: All Bytes ACK: ", buffer.payload[0].num_of_bytes - 1 == self.bytes_sent, "Next Bytes Requested: ",buffer.payload[0].num_of_bytes)
             if not self.bytes_sent+1==buffer.payload[0].num_of_bytes:
                 print("Didnt got some packet")
 
@@ -162,7 +162,7 @@ class quicPacket:
             num_of_bytes = struct.unpack("!i", data[p:p + 4])
             p += 4
             payload.append(ACK(num_of_bytes[0]))
-        if 'M' in flags:
+        if 'D' in flags:
             while p < size:
                 stream_id, length, offset = struct.unpack("!iii", data[p:p + 12])
                 p += 12
