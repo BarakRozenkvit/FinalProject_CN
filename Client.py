@@ -1,8 +1,5 @@
 import random
 import time
-
-from nacl.bindings import crypto_kx_SEED_BYTES
-
 from QUIC import quicSocket, Stream
 from FileBuffer import BufferManager
 import Statistics
