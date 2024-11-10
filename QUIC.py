@@ -57,22 +57,25 @@ class quicSocket:
         """
         print("------")
         self.PacketNumber += 1
+        packet = quicPacket(packet_flags,self.dest_connection_id,self.PacketNumber,data)
         if len(packet_flags) == 1:
             packet_flags.append('0')
 
         if 'A' in packet_flags:
             print("Packing ACK")
-            data.insert(0,ACK(self.bytes_received+1))
+            packet.payload.insert(0,ACK(self.bytes_received+1))
+
         
         if 'S' in packet_flags:
             print("Packing SYN")
-            packet = quicPacket(packet_flags, self.connection_id, self.PacketNumber, data)
+            # packet = quicPacket(packet_flags, self.connection_id, self.PacketNumber, data)
+            packet.dest_connection_id=self.connection_id
         elif 'D' in packet_flags:
             print("Packing DATA")
-            packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
+            # packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
         elif 'F' in packet_flags:
             print("Packing FIN")
-            packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
+            # packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
 
         data_to_send = packet.pack()
         self.bytes_sent+=len(data_to_send)
@@ -124,9 +127,9 @@ class quicPacket:
      Header Size = 9 Bytes
     QUIC Packet easy version for QUIC Short packet and QUIC Long packet
     """
-
+    size=10
     def __init__(self, flag, dst_connection_id, packet_number, payload):
-        self.flags = flag # 3 Characters
+        self.flags = flag # 2 Characters
         self.dest_connection_id = dst_connection_id  # Integer
         self.packet_number = packet_number  # Integer
         self.payload = payload
@@ -174,7 +177,7 @@ class quicPacket:
 
 
 class Stream:
-
+    size=12
     def __init__(self, ID, offset, length, data):
         """
         Header Size = 12 Bytes
@@ -190,5 +193,6 @@ class Stream:
 
 
 class ACK:
+    size=4
     def __init__(self, num_of_bytes):
         self.num_of_bytes=num_of_bytes

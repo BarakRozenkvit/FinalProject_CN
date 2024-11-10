@@ -1,6 +1,8 @@
 import sys
 import os
 import time
+
+import QUIC
 from FileBuffer import BufferManager
 from QUIC import quicSocket, Stream ,ACK
 from threading import Thread
@@ -35,16 +37,18 @@ def main():
 
     while True:
         # Pack data into streams with a total payload size of up to 5000 bytes
-        payload = buffer_manager.pack(BUFFER_SIZE)
+        payload = buffer_manager.pack(BUFFER_SIZE-QUIC.ACK.size-QUIC.quicPacket.size)
         print(f"Packed payload: {payload}")
 
         if not payload:  # Check if the payload is empty
             print("All data sent, sending exit signal to client.")
-            info_stream = Stream(1, 2, 4, "EXIT")
-            server.send(['D'],clientAddress, [info_stream])  # Send exit signal to client
-            break
+            server.send(['F'],clientAddress) # Send exit signal to client
+            buffer,clientAddress = server.receive()
+            if 'A' in buffer.flags and 'F' in buffer.flags:
+                break
 
         server.send(['D'],clientAddress, payload)
+        buffer, clientAddress = server.receive()
         print("Sent payload to client.")
 
     server.socket.close()

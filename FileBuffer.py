@@ -2,6 +2,7 @@ import queue
 import random
 import time
 
+import QUIC
 from FileHandler import FileHandler
 from QUIC import Stream
 
@@ -98,6 +99,8 @@ class BufferManager:
                 add = self.fileBuffers[i].toStream()
                 streamsToSend.append(add)
                 payload_size -= self.fileBuffers[i].packageSize
+                payload_size -= QUIC.Stream.size
+
 
             if( res == len(self.fileBuffers)):
                 break

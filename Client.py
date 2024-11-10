@@ -1,13 +1,15 @@
 import random
 import time
 
+from nacl.bindings import crypto_kx_SEED_BYTES
+
 from QUIC import quicSocket, Stream
 from FileBuffer import BufferManager
 import Statistics
 
 SERVER_ADDRESS = ('localhost', 12000)
-BUFFER_SIZE = 9000
-NUM_FLOWS = 5
+BUFFER_SIZE = 5000
+NUM_FLOWS = 1
 
 
 def main(num_flows):
@@ -30,18 +32,17 @@ def main(num_flows):
     while progress:
         buffer, serverAddress = client.receive()
 
+        if 'F' in buffer.flags:
+            client.send(['F','A'],serverAddress)
+            progress = False
+            break
         for item in buffer.payload:
             if isinstance(item, Stream):
                 stream_id = item.stream_id
-                if(stream_id == 1 and item.stream_data == "EXIT"):
-                    print("Exit signal received. Closing connection.")
-                    progress = False
-                    break
-
                 statistics.add_stream(stream_id)
                 statistics.update_stream(stream_id, len(item.stream_data),item.stream_data)
             
-        client.send(['A'],serverAddress)
+        client.send(['A'],serverAddress,[])
     
     client.socket.close()
     print("Client socket closed.")
