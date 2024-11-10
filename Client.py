@@ -1,51 +1,41 @@
-import random
-import time
-
-from QUIC import quicSocket, Stream
-from FileBuffer import BufferManager
-import Statistics
+from quic_statistics import Statistics
+from quic import quicSocket, Stream
 
 SERVER_ADDRESS = ('localhost', 12000)
-BUFFER_SIZE = 9000
-NUM_FLOWS = 5
+BUFFER_SIZE = 5000
+NUM_FLOWS = 1
 
+def main():
 
-def main(num_flows):
+    print("Starting Client")
+    client = quicSocket(BUFFER_SIZE)
 
-    print(f"Starting client with {num_flows} flows...")
-    client = quicSocket()
     client.connect(SERVER_ADDRESS)
     print("Client connected to server.")
 
-    # Send the number of flows requested to the server
-    info_stream = Stream(1,2,1,str(num_flows))
-    client.send(SERVER_ADDRESS, [info_stream])
-    print(f"Sent number of flows {num_flows} to server.")
+    print("Sending Request for ", NUM_FLOWS," Files")
+    client.send(['D','A'],SERVER_ADDRESS, [Stream(1,2,1,str(NUM_FLOWS))])
 
-    bytes_received = 0
-    all_streams_data = []  # For storing the received stream data
-    statistics = Statistics.Statistics()
-    progress = True
+    statistics = Statistics()
 
-    while progress:
-        data = client.receive(BUFFER_SIZE)
+    while True:
+        buffer, server_address = client.receive()
 
-        for item in data:
+        if 'F' in buffer.flags:
+            client.send(['F','A'],server_address,[])
+            break
+
+        for item in buffer.payload:
             if isinstance(item, Stream):
                 stream_id = item.stream_id
-                if(stream_id == 1 and item.stream_data == "EXIT"):
-                    print("Exit signal received. Closing connection.")
-                    progress = False
-                    break
-
                 statistics.add_stream(stream_id)
                 statistics.update_stream(stream_id, len(item.stream_data),item.stream_data)
 
+        client.send(['A'],server_address,[])
+
+    print("Client Disconnecting")
     client.socket.close()
-    print("Client socket closed.")
     statistics.calculate_statistics()
 
-
-
 if __name__ == '__main__':
-    main(NUM_FLOWS)  # Adjust the number of flows as needed
+    main()
