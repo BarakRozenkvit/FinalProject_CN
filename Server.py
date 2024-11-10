@@ -3,7 +3,7 @@ from file_buffer import BufferManager
 from quic import quicSocket,ACK,quicPacket
 
 SERVER_ADDRESS = ('', 12000)
-BUFFER_SIZE= 2100
+BUFFER_SIZE= 5000
 
 def main():
     cwd = os.getcwd() + "/Files"
