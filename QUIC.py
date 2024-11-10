@@ -1,11 +1,6 @@
-import json
-import pickle
 import random
 import struct
 from socket import AF_INET, SOCK_DGRAM, socket
-from sys import getsizeof
-import time
-
 
 class quicSocket:
 
@@ -18,15 +13,14 @@ class quicSocket:
         self.socket = socket(AF_INET, SOCK_DGRAM)
         self.connection_id = random.randint(1, 100)
         self.buffer_size = buffer_size
-        self.PacketNumber = 0
-
+        self.packet_number = 0
 
         # Data for Validation
         self.dest_connection_id = None
         self.bytes_received=0
         self.bytes_sent=0
 
-    def connect(self, serverAddress):
+    def connect(self, server_address):
         """
         1. send connection request
         2. wait for response and save the dest_conncetion_id
@@ -34,8 +28,8 @@ class quicSocket:
         :return: void
         """
 
-        self.send(['S'],serverAddress)
-        buffer,clientAddress = self.receive()
+        self.send(['S'],server_address,[])
+        self.receive()
 
     def accept(self):
         """
@@ -44,45 +38,31 @@ class quicSocket:
         :param buffer_size:
         :return:
         """
-        buffer,clientAddress = self.receive()
-        self.send(['S','A'],clientAddress)
-        return clientAddress
+        _buffer,client_address = self.receive()
+        self.send(['S','A'],client_address,[])
+        return client_address
 
-    def send(self,packet_flags, serverAddress, data=[]):
+    def send(self,packet_flags, server_address, data):
         """
         1. send data
         :param serverAddress
         :param data
         :return:
         """
-        print("------")
-        self.PacketNumber += 1
-        packet = quicPacket(packet_flags,self.dest_connection_id,self.PacketNumber,data)
+        self.packet_number += 1
+        packet = quicPacket(packet_flags,self.dest_connection_id,self.packet_number,data)
         if len(packet_flags) == 1:
             packet_flags.append('0')
 
         if 'A' in packet_flags:
-            print("Packing ACK")
             packet.payload.insert(0,ACK(self.bytes_received+1))
 
-        
         if 'S' in packet_flags:
-            print("Packing SYN")
-            # packet = quicPacket(packet_flags, self.connection_id, self.PacketNumber, data)
             packet.dest_connection_id=self.connection_id
-        elif 'D' in packet_flags:
-            print("Packing DATA")
-            # packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
-        elif 'F' in packet_flags:
-            print("Packing FIN")
-            # packet = quicPacket(packet_flags, self.dest_connection_id, self.PacketNumber, data)
 
         data_to_send = packet.pack()
-        self.bytes_sent+=len(data_to_send)
-        print("Bytes Sent: " , self.bytes_sent)
-        self.socket.sendto(data_to_send, serverAddress)
-        print("------")
-
+        self.bytes_sent += len(data_to_send)
+        self.socket.sendto(data_to_send, server_address)
 
     def receive(self):
         """
@@ -90,36 +70,23 @@ class quicSocket:
         :param buffer_size
         :return:
         """
-        print("------")
-        buffer, clientAddress = self.socket.recvfrom(self.buffer_size)
-        self.bytes_received+=len(buffer)
-        print("Bytes Received: ", self.bytes_received)
-        
+
+        buffer, client_address = self.socket.recvfrom(self.buffer_size)
+        self.bytes_received += len(buffer)
         buffer = quicPacket.unpack(buffer)
 
         if 'S' in buffer.flags:
-            print("Unpacking SYN")
             self.dest_connection_id = buffer.dest_connection_id
 
         elif 'D' in  buffer.flags:
-            print("Unpacking DATA")
             if buffer.dest_connection_id != self.connection_id:
-                ## Wrong client
-                return
-            
-        elif 'F' in buffer.flags:
-            print("Unpacking FIN")
-            i =0
-            
+                print("Connection is taken by another client")
+
         if 'A' in buffer.flags:
-            print("Unpacking ACK")
-            print("ACK Data of 2nd endpoint: All Bytes ACK: ", buffer.payload[0].num_of_bytes - 1 == self.bytes_sent, "Next Bytes Requested: ",buffer.payload[0].num_of_bytes)
             if not self.bytes_sent+1==buffer.payload[0].num_of_bytes:
-                print("Didnt got some packet")
+                print("a Packet is Lost")
 
-        print("------")
-
-        return buffer, clientAddress
+        return buffer, client_address
 
 
 class quicPacket:
@@ -141,11 +108,11 @@ class quicPacket:
         """
         data = struct.pack("!ccii", self.flags[0].encode(),self.flags[1].encode(), self.dest_connection_id, self.packet_number)
         for frame in self.payload:
-            if type(frame) == Stream:
+            if isinstance(frame,Stream):
                 encoded = frame.stream_data.encode()
                 data += struct.pack("!iii", frame.stream_id, len(encoded), frame.offset)
                 data += encoded
-            if type(frame) == ACK:
+            if isinstance(frame,ACK):
                 data += struct.pack("!i", frame.num_of_bytes)
         return data
 
@@ -157,20 +124,20 @@ class quicPacket:
         :return:
         """
         size = len(data)
-        p = 10
-        type,ack, dest_connection, packet_number = struct.unpack("!ccii", data[0:p])
-        flags = [type.decode(),ack.decode()]
+        i = quicPacket.size
+        mode ,ack, dest_connection, packet_number = struct.unpack("!ccii", data[0:i])
+        flags = [mode.decode(),ack.decode()]
         payload = []
         if 'A' in flags:
-            num_of_bytes = struct.unpack("!i", data[p:p + 4])
-            p += 4
+            num_of_bytes = struct.unpack("!i", data[i:i + ACK.size])
+            i += ACK.size
             payload.append(ACK(num_of_bytes[0]))
         if 'D' in flags:
-            while p < size:
-                stream_id, length, offset = struct.unpack("!iii", data[p:p + 12])
-                p += 12
-                stream_data = data[p:p + length].decode("utf-8")
-                p += length
+            while i < size:
+                stream_id, length, offset = struct.unpack("!iii", data[i:i + Stream.size])
+                i += Stream.size
+                stream_data = data[i:i + length].decode("utf-8")
+                i += length
                 payload.append(Stream(stream_id, offset, length, stream_data))
 
         return quicPacket(flags, dest_connection, packet_number, payload)

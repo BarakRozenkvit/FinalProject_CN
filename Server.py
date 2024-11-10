@@ -1,11 +1,6 @@
-import sys
 import os
-import time
-
-import QUIC
-from FileBuffer import BufferManager
-from QUIC import quicSocket, Stream ,ACK
-from threading import Thread
+from file_buffer import BufferManager
+from quic import quicSocket,ACK,quicPacket
 
 SERVER_ADDRESS = ('', 12000)
 BUFFER_SIZE= 5000
@@ -15,20 +10,21 @@ def main():
     files_to_send = [os.path.join(cwd, f) for f in os.listdir(cwd) if
                  os.path.isfile(os.path.join(cwd, f))]
 
-    print("Creating server socket...")
+    print("Starting Server")
     server = quicSocket(BUFFER_SIZE)
 
     print("The server is binding to ", SERVER_ADDRESS)
     server.socket.bind(SERVER_ADDRESS)
-    print("The server is ready to accept new incoming connections.")
-    clientAddress = server.accept()
+    print("The server is ready to accept new incoming connections...")
+    client_address = server.accept()
     print("The server connected to peer")
 
-    buffer, clientAddress = server.receive()
+    buffer, client_address = server.receive()
+    
     try:
         num_flows_requested = int(buffer.payload[1].stream_data)
     except:
-        print("Number of flows requested Invalid")
+        server.send(['F'],client_address,[]) # Send exit signal to client
         exit()
 
     print("Creating database of files to send...")
@@ -36,20 +32,17 @@ def main():
     buffer_manager.manage()
 
     while True:
-        # Pack data into streams with a total payload size of up to 5000 bytes
-        payload = buffer_manager.pack(BUFFER_SIZE-QUIC.ACK.size-QUIC.quicPacket.size)
-        print(f"Packed payload: {payload}")
-
+        payload = buffer_manager.pack(BUFFER_SIZE- ACK.size - quicPacket.size)
+        
         if not payload:  # Check if the payload is empty
             print("All data sent, sending exit signal to client.")
-            server.send(['F'],clientAddress) # Send exit signal to client
-            buffer,clientAddress = server.receive()
+            server.send(['F'],client_address,[]) # Send exit signal to client
+            buffer,client_address = server.receive()
             if 'A' in buffer.flags and 'F' in buffer.flags:
                 break
 
-        server.send(['D'],clientAddress, payload)
-        buffer, clientAddress = server.receive()
-        print("Sent payload to client.")
+        server.send(['D'],client_address, payload)
+        buffer, client_address = server.receive()
 
     server.socket.close()
     print("Server socket closed. Transmission complete.")

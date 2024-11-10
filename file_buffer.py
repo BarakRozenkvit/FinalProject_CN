@@ -1,10 +1,7 @@
 import queue
 import random
-import time
-
-import QUIC
-from FileHandler import FileHandler
-from QUIC import Stream
+from file_handler import FileHandler
+from quic import Stream
 
 
 class FileBuffer:
@@ -18,34 +15,34 @@ class FileBuffer:
         self.fileHandler: FileHandler Object
         """
         self.buffer = queue.Queue()
-        self.packageSize = random.randint(1000,2000) ## Parameter to Divide Chunks of data for each flow (flow == file)
-        self.streamID = random.randint(1,100)
-        self.fileHandler = FileHandler(path)
+        self.package_size = random.randint(1000,2000) ## Parameter to Divide Chunks of data for each flow (flow == file)
+        self.stream_id = random.randint(1,100)
+        self.file_handler = FileHandler(path)
 
-    def isEmpty(self):
+    def is_empty(self):
         """
         this function checks if buffer is empty
         :return:
         """
         return self.buffer.empty()
 
-    def fillBuffer(self):
+    def fill_buffer(self):
         """
         this function fills the buffer
         :return:
         """
-        while not self.fileHandler.EOF:
-            data = (self.fileHandler.getData(self.packageSize), self.fileHandler.getSequenceNumber())
+        while not self.file_handler.eof:
+            data = (self.file_handler.get_data(self.package_size), self.file_handler.get_sequence_number())
             self.buffer.put(data)
 
-    def toStream(self):
+    def to_stream(self):
         """
         1. pop 0 index from list (Queue)
         2. convert to Stream
         :return: Stream Object
         """
         data = self.buffer.get(block=False)
-        return Stream(self.streamID,data[1],len(data[0]),data[0])
+        return Stream(self.stream_id,data[1],len(data[0]),data[0])
 
 class BufferManager:
 
@@ -55,15 +52,15 @@ class BufferManager:
         2. for every file in file list create FileBuffer object
         :param file_list: list of files
         """
-        self.fileBuffers = []
-        self.minPackageSize = 2000
+        self.file_buffers = []
+        self.min_package_size = 2000
         self.res = 0
-        for i in range(0, len(file_list)):
-            fileBuffer = FileBuffer(file_list[i])
-            self.res += fileBuffer.fileHandler.fileSize
-            if fileBuffer.packageSize < self.minPackageSize:
-                self.minPackageSize = fileBuffer.packageSize
-            self.fileBuffers.append(fileBuffer)
+        for i in file_list:
+            file_buffer = FileBuffer(i)
+            self.res += file_buffer.file_handler.file_size
+            if file_buffer.package_size < self.min_package_size:
+                self.min_package_size = file_buffer.package_size
+            self.file_buffers.append(file_buffer)
         self.running = True
 
     def manage(self):
@@ -73,8 +70,8 @@ class BufferManager:
         lock the buffer to the thread, fill it and release the buffer
         :return: void
         """
-        for fileBuffer in self.fileBuffers:
-            fileBuffer.fillBuffer()
+        for file_buffer in self.file_buffers:
+            file_buffer.fill_buffer()
 
     def pack(self,payload_size):
         """
@@ -86,56 +83,24 @@ class BufferManager:
         3. if all buffers are empty stop this function
         :return: Stream array
         """
-        streamsToSend = []
+        streams_to_send = []
         while payload_size >=0:
             res = 0
-            idx = list(range(0,len(self.fileBuffers)))
+            idx = list(range(0,len(self.file_buffers)))
             random.shuffle(idx)
             for i in idx:
-                if (payload_size  - self.fileBuffers[i].packageSize < 0 or self.fileBuffers[i].buffer.qsize() == 0):
+                if (payload_size  - self.file_buffers[i].package_size < 0 or 
+                    self.file_buffers[i].buffer.qsize() == 0):
                     res+=1
                     continue
 
-                add = self.fileBuffers[i].toStream()
-                streamsToSend.append(add)
-                payload_size -= self.fileBuffers[i].packageSize
-                payload_size -= QUIC.Stream.size
+                add = self.file_buffers[i].to_stream()
+                streams_to_send.append(add)
+                payload_size -= self.file_buffers[i].package_size
+                payload_size -= Stream.size
 
 
-            if( res == len(self.fileBuffers)):
+            if res == len(self.file_buffers):
                 break
 
-        return streamsToSend
-
-
-
-
-if __name__ == '__main__':
-    b = BufferManager(["Files/1.txt","Files/2.txt","Files/3.txt","Files/4.txt"])
-    b.manage()
-    # t = Thread(target=b.manage)
-    # t.start()
-    i=0
-    g=[1]
-    while g!=[]:
-        time.sleep(0.00000005)
-        g = b.pack(3000)
-        i+=1
-        t = 0
-        for l in g:
-            t+=l.length
-
-        print(t,g)
-
-    print(i)
-    for f in b.fileBuffers:
-        print(f.fileHandler.EOF)
-
-    b.running = False
-
-
-
-
-
-
-
+        return streams_to_send

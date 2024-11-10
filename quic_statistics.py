@@ -23,14 +23,6 @@ class Statistics:
             stream["total_packets"] += 1  # Assuming each data chunk is one packet
             stream["end_time"] = time.time()
 
-    # def hagit_check(self):
-    #     for stream in self.streams:
-    #         with open(f"Files/{stream}.txt", "wb") as f:
-    #             data_to_write = self.streams[stream]["data"]
-    #             if isinstance(data_to_write, str):
-    #                 data_to_write = data_to_write.encode()
-    #             f.write(data_to_write)
-
     def calculate_statistics(self):
         stats = {}
         total_bytes = 0
