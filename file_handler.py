@@ -29,7 +29,9 @@ class FileHandler:
             data = self.reader.read(size)
             if len(data) < size:
                 self.eof = True
-                return data
+            
+            return data
+        
         else:
             self.eof = True
 
@@ -39,3 +41,8 @@ class FileHandler:
         :return:
         """
         return self.reader.tell() + 1
+
+if __name__ == '__main__':
+    d = FileHandler("Files/2.txt")
+    g =d.get_data(88800)
+    g = d.get_data(880)

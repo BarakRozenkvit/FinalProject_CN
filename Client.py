@@ -2,8 +2,8 @@ from quic_statistics import Statistics
 from quic import quicSocket, Stream
 
 SERVER_ADDRESS = ('localhost', 12000)
-BUFFER_SIZE = 2500
-NUM_FLOWS = 5
+BUFFER_SIZE = 2100
+NUM_FLOWS = 10
 
 
 def main():
