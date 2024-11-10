@@ -18,6 +18,7 @@ class FileBuffer:
         self.package_size = random.randint(1000,2000) ## Parameter to Divide Chunks of data for each flow (flow == file)
         self.stream_id = random.randint(1,100)
         self.file_handler = FileHandler(path)
+        # print(self.file_handler.path , " : " , self.file_handler.file_size, " " ,self.stream_id)
 
     def is_empty(self):
         """
