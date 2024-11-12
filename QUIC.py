@@ -8,6 +8,7 @@ class quicSocket:
         """
         self.socket: UDP socket of quic Socket
         self.connection_id: unique id of the socket
+        self.buffer size: size of the buffer
         self.dest_connection_id: the unique id of the destination connection
         """
         self.socket = socket(AF_INET, SOCK_DGRAM)
@@ -22,21 +23,14 @@ class quicSocket:
 
     def connect(self, server_address):
         """
-        1. send connection request
-        2. wait for response and save the dest_conncetion_id
-        :param serverAddress: address of the server
-        :return: void
+        send SYN to Server
         """
-
         self.send(['S'],server_address,[])
         self.receive()
 
     def accept(self):
         """
-        1. receive connection request and save the dest_conncetion_id
-        2. send connection accept
-        :param buffer_size:
-        :return:
+        Receive SYN from client and send SYN ACK to client
         """
         _buffer,client_address = self.receive()
         self.send(['S','A'],client_address,[])
@@ -44,10 +38,7 @@ class quicSocket:
 
     def send(self,packet_flags, server_address, data):
         """
-        1. send data
-        :param serverAddress
-        :param data
-        :return:
+        Build Quic packet according to flags and data and send it
         """
         self.packet_number += 1
         packet = quicPacket(packet_flags,self.dest_connection_id,self.packet_number,data)
@@ -55,9 +46,11 @@ class quicSocket:
             packet_flags.append('0')
 
         if 'A' in packet_flags:
+            # Insert ACK frame into 0 idx in payload
             packet.payload.insert(0,ACK(self.bytes_received+1))
 
         if 'S' in packet_flags:
+            # if SYN send my connection id
             packet.dest_connection_id=self.connection_id
 
         data_to_send = packet.pack()
@@ -66,23 +59,23 @@ class quicSocket:
 
     def receive(self):
         """
-        1. receive data
-        :param buffer_size
-        :return:
+        Receive buffer
         """
-
         buffer, client_address = self.socket.recvfrom(self.buffer_size)
         self.bytes_received += len(buffer)
         buffer = quicPacket.unpack(buffer)
 
         if 'S' in buffer.flags:
+            # if got SYN replace the dst connection id with new one
             self.dest_connection_id = buffer.dest_connection_id
 
         elif 'D' in  buffer.flags:
+            # if got data from other client
             if buffer.dest_connection_id != self.connection_id:
                 print("Connection is taken by another client")
 
         if 'A' in buffer.flags:
+            # if got ACK packet check if packet is lost
             if not self.bytes_sent+1==buffer.payload[0].num_of_bytes:
                 print("a Packet is Lost")
 
@@ -91,7 +84,7 @@ class quicSocket:
 
 class quicPacket:
     """
-     Header Size = 9 Bytes
+     Header Size = 10 Bytes
     QUIC Packet easy version for QUIC Short packet and QUIC Long packet
     """
     size=10

@@ -10,15 +10,14 @@ class FileBuffer:
         """
         :param path: path to file
         self.buffer: [(data1,seqNum1),(data2,seqNum2),(data3,seqNum3)]
-        self.streamID: uniqe ID to assign Stream Object
-        self.packageSize: size of each package of data from file
-        self.fileHandler: FileHandler Object
+        self.stream_id: uniqe ID to assign Stream Object
+        self.package_size: size of each package of data from file
+        self.file_handler: FileHandler Object
         """
         self.buffer = queue.Queue()
         self.package_size = random.randint(1000,2000) ## Parameter to Divide Chunks of data for each flow (flow == file)
         self.stream_id = random.randint(1,1000)
         self.file_handler = FileHandler(path)
-        # print(self.file_handler.path , " : " , self.file_handler.file_size, " " ,self.stream_id)
 
     def is_empty(self):
         """
@@ -38,8 +37,7 @@ class FileBuffer:
 
     def to_stream(self):
         """
-        1. pop 0 index from list (Queue)
-        2. convert to Stream
+        convert to Stream
         :return: Stream Object
         """
         data = self.buffer.get(block=False)
