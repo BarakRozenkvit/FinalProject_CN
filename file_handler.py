@@ -1,15 +1,11 @@
 import os
 
 class FileHandler:
-
+    """
+    This class create an instance for each file
+    that responsible to split the file to chunk of data
+    """
     def __init__(self,path):
-        """
-        self.path: file path
-        self.reader: file reader
-        self.packageSize: package size that is random between 1000 and 2000
-        self.fileSize: file size
-        self.EOF: if we reach EOF
-        """
         self.path = path
         if path != "" :
             self.reader = open(path,"r")
@@ -18,8 +14,8 @@ class FileHandler:
 
     def get_data(self,size):
         """
-        cheבk if file reader has got to the end of the file,
-        if not, return the size paramter of data
+        check if file reader has got to the end of the file,
+        if not, return the size parameter of data
         if data is less than wanted size, set self.EOF to True
         else yes set self.EOF to True
         :return:

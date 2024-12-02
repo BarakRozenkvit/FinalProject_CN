@@ -1,11 +1,14 @@
 import queue
 import random
 from file_handler import FileHandler
-from quic import Stream
+from QUIC import Stream
 
 
 class FileBuffer:
-
+    """
+    This class responsible to hold all the chunk (create by file handler)
+    of the data in queue and also responsible to fill the queue and to check if the data is over.
+    """
     def __init__(self,path):
         """
         :param path: path to file
@@ -44,7 +47,10 @@ class FileBuffer:
         return Stream(self.stream_id,data[1],len(data[0]),data[0])
 
 class BufferManager:
-
+    """
+    This class first create list of the relevant files to manage them
+    and also pack all the streams to one payload
+    """
     def __init__(self,file_list):
         """
         1. initialize the file list to empty
@@ -64,9 +70,7 @@ class BufferManager:
 
     def manage(self):
         """
-        run this process while the flag self.running is True
-        for each buffer, if its empty or below threshold,
-        lock the buffer to the thread, fill it and release the buffer
+        for each buffer, fill the buffer in all the chunks data
         :return: void
         """
         for file_buffer in self.file_buffers:
@@ -76,7 +80,7 @@ class BufferManager:
         """
         while the payload size is greater than the minimum of package size of all the packages of all files
         and self.running is True:
-        1. shuffle the list, for every buffer, lock the buffer to thread
+        1. shuffle the list, for every buffer
         2. if fileBuffer is not empty and the package size is smaller than payload size, convert to Stream and
         add to list
         3. if all buffers are empty stop this function

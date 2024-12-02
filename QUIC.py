@@ -96,7 +96,7 @@ class quicPacket:
 
     def pack(self):
         """
-        serialize the packet
+        Packet to bytes
         :return:
         """
         data = struct.pack("!ccii", self.flags[0].encode(),self.flags[1].encode(), self.dest_connection_id, self.packet_number)
@@ -112,7 +112,7 @@ class quicPacket:
     @staticmethod
     def unpack(data):
         """
-        deserialize the packet
+        bytes to packet data
         :param packet:
         :return:
         """
@@ -153,6 +153,9 @@ class Stream:
 
 
 class ACK:
+    """
+    very basic ACK not according to QUIC
+    """
     size=4
     def __init__(self, num_of_bytes):
         self.num_of_bytes=num_of_bytes

@@ -1,5 +1,5 @@
 from quic_statistics import Statistics
-from quic import quicSocket, Stream
+from QUIC import quicSocket, Stream
 
 SERVER_ADDRESS = ('localhost', 12000)
 BUFFER_SIZE = 5000

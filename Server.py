@@ -1,6 +1,6 @@
 import os
 from file_buffer import BufferManager
-from quic import quicSocket,ACK,quicPacket
+from QUIC import quicSocket,ACK,quicPacket
 
 SERVER_ADDRESS = ('', 12000)
 BUFFER_SIZE= 5000
