@@ -5,7 +5,7 @@ SERVER_ADDRESS = ('localhost', 12000)
 BUFFER_SIZE = 5000
 NUM_FLOWS = 1
 
-def main():
+def main_client():
 
     print("Starting Client")
     client = quicSocket(BUFFER_SIZE)
@@ -38,4 +38,4 @@ def main():
     statistics.calculate_statistics()
 
 if __name__ == '__main__':
-    main()
+    main_client()

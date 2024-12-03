@@ -5,7 +5,7 @@ from QUIC import quicSocket,ACK,quicPacket
 SERVER_ADDRESS = ('', 12000)
 BUFFER_SIZE= 5000
 
-def main():
+def main_server():
     cwd = os.getcwd() + "/Files"
     files_to_send = [os.path.join(cwd, f) for f in os.listdir(cwd) if
                  os.path.isfile(os.path.join(cwd, f))]
@@ -49,4 +49,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main_server()
